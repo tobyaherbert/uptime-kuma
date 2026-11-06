@@ -141,6 +141,41 @@ describe("Uptime Calculator", () => {
         assert.strictEqual(fixed.getDataArray(hourlyQueueLimit, "hour").length, hourlyQueueLimit);
     });
 
+    describe("reading uptime in a minute without a beat", () => {
+        /**
+         * Record beats either side of a minute without one, read uptime during that minute,
+         * then return the minutely datapoint timestamps
+         * @param {function(UptimeCalculator): void} read Uptime read to perform in the minute without a beat
+         * @returns {Promise<number[]>} Timestamps of the minutely datapoints
+         */
+        async function readInMinuteWithoutBeat(read) {
+            let calculator = new UptimeCalculator();
+
+            UptimeCalculator.currentDate = dayjs.utc("2023-08-12 20:46:10");
+            await calculator.update(UP, 100);
+
+            UptimeCalculator.currentDate = dayjs.utc("2023-08-12 20:47:10");
+            read(calculator);
+
+            UptimeCalculator.currentDate = dayjs.utc("2023-08-12 20:48:10");
+            await calculator.update(UP, 120);
+
+            return calculator.getDataArray(60, "minute").map((datapoint) => datapoint.timestamp);
+        }
+
+        const beatTimestamps = [dayjs.utc("2023-08-12 20:48:00").unix(), dayjs.utc("2023-08-12 20:46:00").unix()];
+
+        test("getData() does not add an empty datapoint", async () => {
+            let timestamps = await readInMinuteWithoutBeat((calculator) => calculator.getData(1440, "minute"));
+            assert.deepStrictEqual(timestamps, beatTimestamps);
+        });
+
+        test("getDataArray() does not add an empty datapoint", async () => {
+            let timestamps = await readInMinuteWithoutBeat((calculator) => calculator.getDataArray(1440, "minute"));
+            assert.deepStrictEqual(timestamps, beatTimestamps);
+        });
+    });
+
     test("getDailyKey() returns correct timestamp for start of day", () => {
         let c2 = new UptimeCalculator();
         let dailyKey = c2.getDailyKey(dayjs.utc("2023-08-12 20:46:00"));

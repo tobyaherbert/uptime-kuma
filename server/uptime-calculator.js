@@ -517,7 +517,8 @@ class UptimeCalculator {
     }
 
     /**
-     * Convert timestamp to key
+     * Convert timestamp to key, without creating a bucket for it. Only update() creates buckets,
+     * so reading uptime in a period without a beat does not leave an empty datapoint behind.
      * @param {dayjs.Dayjs} datetime Datetime
      * @param {"day" | "hour" | "minute"} type the type of data which is expected to be returned
      * @returns {number} Timestamp
@@ -526,11 +527,11 @@ class UptimeCalculator {
     getKey(datetime, type) {
         switch (type) {
             case "day":
-                return this.getDailyKey(datetime);
+                return this.getDailyKey(datetime, false);
             case "hour":
-                return this.getHourlyKey(datetime);
+                return this.getHourlyKey(datetime, false);
             case "minute":
-                return this.getMinutelyKey(datetime);
+                return this.getMinutelyKey(datetime, false);
             default:
                 throw new Error("Invalid type");
         }
